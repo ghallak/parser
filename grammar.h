@@ -2,22 +2,31 @@
 
 #include <vector>
 #include <variant>
+#include <memory>
 #include <type_traits>
 #include <unordered_set>
 #include <unordered_map>
 
-template<typename TokenType, typename NonterminalType>
+enum class Token;
+enum class Nonterminal;
+
 class Grammar
 {
+public:
+    class Production;
+
 private:
     struct EmptyToken {};
+
+    using productions_vector = std::vector<std::unique_ptr<const Production>>;
+    using const_iterator = productions_vector::const_iterator;
 
 public:
     class Production
     {
     public:
         template<typename... Args>
-        Production(NonterminalType lhs, Args&&... args)
+        Production(Nonterminal lhs, Args&&... args)
             : lhs_(lhs)
         {
             (add_rhs(args), ...);
@@ -27,19 +36,23 @@ public:
         {
             return rhs_.size();
         }
+
         bool is_terminal_at(std::size_t id) const
         {
             return is_terminal_[id];
         }
-        TokenType token_at(std::size_t id) const
+
+        Token token_at(std::size_t id) const
         {
-            return std::get<TokenType>(rhs_[id]);
+            return std::get<Token>(rhs_[id]);
         }
-        NonterminalType nonterminal_at(std::size_t id) const
+
+        Nonterminal nonterminal_at(std::size_t id) const
         {
-            return std::get<NonterminalType>(rhs_[id]);
+            return std::get<Nonterminal>(rhs_[id]);
         }
-        NonterminalType lhs() const noexcept
+
+        Nonterminal lhs() const noexcept
         {
             return lhs_;
         }
@@ -49,12 +62,12 @@ public:
         void add_rhs(SymbolType symbol)
         {
             rhs_.emplace_back(symbol);
-            is_terminal_.emplace_back(std::is_same<SymbolType, TokenType>::value);
+            is_terminal_.emplace_back(std::is_same<SymbolType, Token>::value);
         }
 
-        std::vector<std::variant<TokenType, NonterminalType>> rhs_;
+        std::vector<std::variant<Token, Nonterminal>> rhs_;
         std::vector<bool> is_terminal_;
-        NonterminalType lhs_;
+        Nonterminal lhs_;
     };
 
     class FirstSet
@@ -62,7 +75,8 @@ public:
     public:
         FirstSet() : tokens_(), empty_token_(false)
         {}
-        explicit FirstSet(TokenType token)
+
+        explicit FirstSet(Token token)
             : tokens_({token})
             , empty_token_(false)
         {}
@@ -71,11 +85,18 @@ public:
         {
             empty_token_ = true;
         }
+
+        void insert(Token token)
+        {
+            tokens_.insert(token);
+        }
+
         void insert(const FirstSet& first_set)
         {
             tokens_.insert(first_set.tokens_.begin(), first_set.tokens_.end());
             empty_token_ |= first_set.empty_token_;
         }
+
         void insert_without_empty_token(const FirstSet& first_set)
         {
             tokens_.insert(first_set.tokens_.begin(), first_set.tokens_.end());
@@ -85,106 +106,72 @@ public:
         {
             return tokens_.size() + empty_token_;
         }
-        bool has(TokenType token) const noexcept
+
+        bool has(Token token) const noexcept
         {
             return tokens_.find(token) != tokens_.end();
         }
+
         bool has_empty_token() const noexcept
         {
             return empty_token_;
         }
 
+        // TODO this function should be removed later and first functions
+        // that are used outside the grammar class should be public
+        // and others should be private
+        std::unordered_set<Token> tokens() const noexcept
+        {
+            return tokens_;
+        }
+
     private:
-        std::unordered_set<TokenType> tokens_;
+        std::unordered_set<Token> tokens_;
         bool empty_token_;
     };
+
+    Grammar(Nonterminal nt1, Nonterminal nt2)
+    {
+        productions_.emplace_back(std::make_unique<Production>(nt1, nt2));
+    }
+
+    const Production* main_production() const
+    {
+        return productions_.front().get();
+    }
 
     template<typename... Args>
     void add_production(Args&&... args)
     {
-        productions_.emplace_back(args...);
+        productions_.emplace_back(std::make_unique<Production>(args...));
     }
 
-    FirstSet first(NonterminalType nonterminal) const;
-    FirstSet first(TokenType token) const
+    FirstSet first(Nonterminal nonterminal) const;
+
+    FirstSet first(Token token) const
     {
         return FirstSet(token);
     }
 
-    using iterator = typename std::vector<Production>::iterator;
-    using const_iterator = typename std::vector<Production>::const_iterator;
+    FirstSet first_from(const Production* p, std::size_t from) const;
 
-    iterator begin() noexcept
-    {
-        return productions_.begin();
-    }
-    iterator end() noexcept
-    {
-        return productions_.end();
-    }
     const_iterator begin() const noexcept
     {
         return productions_.cbegin();
     }
+
     const_iterator end() const noexcept
     {
         return productions_.cend();
     }
 
 private:
-    FirstSet first(const Production& p, std::size_t id) const
+    FirstSet first(const Production* p, std::size_t id) const
     {
-        return p.is_terminal_at(id) ? first(p.token_at(id))
-                                    : first(p.nonterminal_at(id));
+        return p->is_terminal_at(id) ? first(p->token_at(id))
+                                    : first(p->nonterminal_at(id));
     }
 
-    std::vector<Production> productions_;
-    mutable std::unordered_map<NonterminalType, FirstSet> first_sets_;
+    productions_vector productions_;
+    mutable std::unordered_map<Nonterminal, FirstSet> first_sets_;
 };
-
-template<typename TokenType, typename NonterminalType>
-typename Grammar<TokenType, NonterminalType>::FirstSet
-Grammar<TokenType, NonterminalType>::first(NonterminalType nonterminal) const
-{
-    if (auto it = first_sets_.find(nonterminal);
-        it != first_sets_.end())
-    {
-        return it->second;
-    }
-
-    auto init_size = first_sets_[nonterminal].size();
-    do
-    {
-        init_size = first_sets_[nonterminal].size();
-
-        for (const auto& production : productions_)
-        {
-            if (production.lhs() == nonterminal)
-            {
-                auto symbols_count = production.rhs_length();
-
-                FirstSet rhs;
-
-                if (symbols_count == 0)
-                    rhs.insert(EmptyToken());
-
-                for (std::size_t i = 0; i < symbols_count; ++i)
-                {
-                    auto fs = first(production, i);
-
-                    if (i + 1 < symbols_count)
-                        rhs.insert_without_empty_token(fs);
-                    else
-                        rhs.insert(fs);
-
-                    if (!fs.has_empty_token())
-                        break;
-                }
-
-                first_sets_[nonterminal].insert(rhs);
-            }
-        }
-    } while (init_size != first_sets_[nonterminal].size());
-
-    return first_sets_[nonterminal];
-}
