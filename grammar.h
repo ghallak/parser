@@ -1,33 +1,31 @@
 #pragma once
 
-#include <vector>
-#include <variant>
 #include <memory>
 #include <type_traits>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
+#include <variant>
+#include <vector>
 
 enum class Token;
 enum class Nonterminal;
 
-class Grammar
-{
+class Grammar {
 public:
     class Production;
 
 private:
-    struct EmptyToken {};
+    struct EmptyToken {
+    };
 
     using productions_vector = std::vector<std::unique_ptr<const Production>>;
-    using const_iterator = productions_vector::const_iterator;
+    using const_iterator     = productions_vector::const_iterator;
 
 public:
-    class Production
-    {
+    class Production {
     public:
         template<typename... Args>
-        Production(Nonterminal lhs, Args&&... args)
-            : lhs_(lhs)
+        Production(Nonterminal lhs, Args&&... args) : lhs_(lhs)
         {
             (add_rhs(args), ...);
         }
@@ -66,20 +64,17 @@ public:
         }
 
         std::vector<std::variant<Token, Nonterminal>> rhs_;
-        std::vector<bool> is_terminal_;
-        Nonterminal lhs_;
+        std::vector<bool>                             is_terminal_;
+        Nonterminal                                   lhs_;
     };
 
-    class FirstSet
-    {
+    class FirstSet {
     public:
-        FirstSet() : tokens_(), empty_token_(false)
-        {}
+        FirstSet() : tokens_(), empty_token_(false) {}
 
-        explicit FirstSet(Token token)
-            : tokens_({token})
-            , empty_token_(false)
-        {}
+        explicit FirstSet(Token token) : tokens_({token}), empty_token_(false)
+        {
+        }
 
         void insert(EmptyToken)
         {
@@ -127,7 +122,7 @@ public:
 
     private:
         std::unordered_set<Token> tokens_;
-        bool empty_token_;
+        bool                      empty_token_;
     };
 
     Grammar(Nonterminal nt1, Nonterminal nt2)
@@ -169,9 +164,9 @@ private:
     FirstSet first(const Production* p, std::size_t id) const
     {
         return p->is_terminal_at(id) ? first(p->token_at(id))
-                                    : first(p->nonterminal_at(id));
+                                     : first(p->nonterminal_at(id));
     }
 
-    productions_vector productions_;
+    productions_vector                                productions_;
     mutable std::unordered_map<Nonterminal, FirstSet> first_sets_;
 };

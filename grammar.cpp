@@ -2,22 +2,18 @@
 
 Grammar::FirstSet Grammar::first(Nonterminal nonterminal) const
 {
-    if (auto it = first_sets_.find(nonterminal);
-        it != first_sets_.end())
-    {
+    if (auto it = first_sets_.find(nonterminal); it != first_sets_.end()) {
         return it->second;
     }
 
     auto init_size = first_sets_[nonterminal].size();
-    do
-    {
+    do {
         init_size = first_sets_[nonterminal].size();
 
-        for (const auto& production : productions_)
-        {
-            if (production->lhs() == nonterminal)
-            {
-                first_sets_[nonterminal].insert(first_from(production.get(), 0));
+        for (const auto& production : productions_) {
+            if (production->lhs() == nonterminal) {
+                first_sets_[nonterminal].insert(
+                    first_from(production.get(), 0));
             }
         }
     } while (init_size != first_sets_[nonterminal].size());
@@ -26,7 +22,7 @@ Grammar::FirstSet Grammar::first(Nonterminal nonterminal) const
 }
 
 Grammar::FirstSet Grammar::first_from(const Production* production,
-                                      std::size_t from) const
+                                      std::size_t       from) const
 {
     auto symbols_count = production->rhs_length();
 
@@ -35,8 +31,7 @@ Grammar::FirstSet Grammar::first_from(const Production* production,
     if (symbols_count == 0)
         first_set.insert(EmptyToken());
 
-    for (std::size_t i = from; i < symbols_count; ++i)
-    {
+    for (std::size_t i = from; i < symbols_count; ++i) {
         auto fs = first(production, i);
 
         if (i + 1 < symbols_count)
@@ -50,4 +45,3 @@ Grammar::FirstSet Grammar::first_from(const Production* production,
 
     return first_set;
 }
-

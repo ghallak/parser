@@ -7,18 +7,15 @@ LR::LR(Grammar&& grammar) : grammar_(std::move(grammar))
     std::vector<std::vector<Item>> marked;
     cc_.emplace_back(closure({Item{grammar_.main_production()}}));
     auto init_size = cc_.size();
-    do
-    {
+    do {
         init_size = cc_.size();
-        for (const auto& it : cc_)
-        {
+        for (const auto& it : cc_) {
             if (std::find(marked.begin(), marked.end(), it) != marked.end())
                 continue;
 
             marked.emplace_back(it);
 
-            for (const auto& item : it)
-            {
+            for (const auto& item : it) {
                 if (!item.next_is_terminal())
                     continue;
 
@@ -34,22 +31,17 @@ LR::LR(Grammar&& grammar) : grammar_(std::move(grammar))
 std::vector<LR::Item> LR::closure(std::vector<Item> s) const
 {
     auto init_size = s.size();
-    do
-    {
+    do {
         init_size = s.size();
 
-        for (const auto& item : s)
-        {
+        for (const auto& item : s) {
             if (item.next_is_terminal())
                 continue;
 
-            for (const auto& production : grammar_)
-            {
-                for (auto token : first_after_next(item))
-                {
+            for (const auto& production : grammar_) {
+                for (auto token : first_after_next(item)) {
                     if (auto new_item = Item{production.get(), token};
-                        std::find(s.begin(), s.end(), new_item) == s.end())
-                    {
+                        std::find(s.begin(), s.end(), new_item) == s.end()) {
                         s.emplace_back(new_item);
                     }
                 }
@@ -63,15 +55,14 @@ std::vector<LR::Item> LR::closure(std::vector<Item> s) const
 std::vector<LR::Item> LR::go_to(std::vector<Item> s, Token token) const
 {
     std::vector<Item> moved;
-    for (const auto& item : s)
-    {
+    for (const auto& item : s) {
         if (!item.next_is_terminal())
             continue;
 
         if (auto next_token = item.next_terminal();
             next_token == token &&
-            std::find(moved.begin(), moved.end(), item.advance_placeholder()) == moved.end())
-        {
+            std::find(moved.begin(), moved.end(), item.advance_placeholder()) ==
+                moved.end()) {
             moved.emplace_back(item.advance_placeholder());
         }
     }

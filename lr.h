@@ -1,36 +1,40 @@
 #pragma once
 
-#include <vector>
 #include <optional>
+#include <vector>
 
 #include "grammar.h"
 
 enum class Token;
 enum class Nonterminal;
 
-class LR
-{
+class LR {
 public:
     using Production = Grammar::Production;
 
-    class Item
-    {
+    class Item {
     public:
         explicit Item(const Production* p)
             : production_(p), placeholder_(0), lookahead_({})
-        {}
+        {
+        }
 
         Item(const Production* p, std::size_t placeholder)
             : production_(p), placeholder_(placeholder), lookahead_({})
-        {}
+        {
+        }
 
         Item(const Production* p, Token lookahead)
             : production_(p), placeholder_(0), lookahead_(lookahead)
-        {}
+        {
+        }
 
-        Item(const Production* p, std::size_t placeholder, std::optional<Token> lookahead)
+        Item(const Production*    p,
+             std::size_t          placeholder,
+             std::optional<Token> lookahead)
             : production_(p), placeholder_(placeholder), lookahead_(lookahead)
-        {}
+        {
+        }
 
         const Production* production() const noexcept
         {
@@ -69,9 +73,9 @@ public:
 
         bool operator==(const Item& rhs) const
         {
-            return production_ == rhs.production_
-                && placeholder_ == rhs.placeholder_
-                && lookahead_ == rhs.lookahead_;
+            return production_ == rhs.production_ &&
+                   placeholder_ == rhs.placeholder_ &&
+                   lookahead_ == rhs.lookahead_;
         }
 
         bool operator!=(const Item& rhs) const
@@ -79,10 +83,9 @@ public:
             return !operator==(rhs);
         }
 
-
     private:
-        const Production* production_;
-        std::size_t placeholder_;
+        const Production*    production_;
+        std::size_t          placeholder_;
         std::optional<Token> lookahead_;
     };
 
@@ -95,7 +98,8 @@ private:
 
     std::vector<Token> first_after_next(const Item& item) const
     {
-        auto ss = grammar_.first_from(item.production(), item.placeholder() + 1);
+        auto ss =
+            grammar_.first_from(item.production(), item.placeholder() + 1);
 
         // TODO This is not adding EOF token, should I add it?
         if (ss.has_empty_token() && item.lookahead().has_value())
@@ -104,5 +108,5 @@ private:
     }
 
     std::vector<std::vector<Item>> cc_;
-    const Grammar grammar_;
+    const Grammar                  grammar_;
 };
