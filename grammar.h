@@ -81,7 +81,7 @@ public:
             empty_token_ = true;
         }
 
-        void insert(Token token)
+        void insert(std::optional<Token> token)
         {
             tokens_.insert(token);
         }
@@ -102,11 +102,6 @@ public:
             return tokens_.size() + empty_token_;
         }
 
-        bool has(Token token) const noexcept
-        {
-            return tokens_.find(token) != tokens_.end();
-        }
-
         bool has_empty_token() const noexcept
         {
             return empty_token_;
@@ -115,14 +110,14 @@ public:
         // TODO this function should be removed later and first functions
         // that are used outside the grammar class should be public
         // and others should be private
-        std::unordered_set<Token> tokens() const noexcept
+        std::unordered_set<std::optional<Token>> tokens() const noexcept
         {
             return tokens_;
         }
 
     private:
-        std::unordered_set<Token> tokens_;
-        bool                      empty_token_;
+        std::unordered_set<std::optional<Token>> tokens_;
+        bool                                     empty_token_;
     };
 
     Grammar(Nonterminal nt1, Nonterminal nt2)

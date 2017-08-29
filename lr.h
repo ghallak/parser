@@ -1,7 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <iostream>
 #include <optional>
+#include <type_traits>
 #include <vector>
 
 #include "grammar.h"
@@ -28,7 +30,7 @@ public:
         {
         }
 
-        Item(const Production* p, Token lookahead)
+        Item(const Production* p, std::optional<Token> lookahead)
             : production_(p), placeholder_(0), lookahead_(lookahead)
         {
         }
@@ -57,17 +59,36 @@ public:
 
         Item advance_placeholder() const noexcept
         {
-            return Item{production_, placeholder_ + 1, lookahead_.value()};
+            return Item{production_, placeholder_ + 1, lookahead_};
+        }
+
+        bool is_final() const
+        {
+            return placeholder_ == production_->rhs_length();
         }
 
         bool next_is_terminal() const
         {
-            return production_->is_terminal_at(placeholder_);
+            return placeholder_ < production_->rhs_length()
+                       ? production_->is_terminal_at(placeholder_)
+                       : true;
         }
 
-        Token next_terminal() const
+        template<typename Symbol>
+        bool next_symbol_equals(Symbol symbol) const
         {
-            return production_->token_at(placeholder_);
+            if constexpr (std::is_same<Symbol, std::optional<Token>>::value)
+                return next_is_terminal() && next_terminal() == symbol;
+            if constexpr (std::is_same<Symbol, Nonterminal>::value)
+                return !next_is_terminal() && next_nonterminal() == symbol;
+            return false;
+        }
+
+        std::optional<Token> next_terminal() const
+        {
+            return placeholder_ < production_->rhs_length()
+                       ? production_->token_at(placeholder_)
+                       : std::optional<Token>{};
         }
 
         Nonterminal next_nonterminal() const
@@ -100,21 +121,27 @@ public:
     void print_items() const;
 
 private:
-    std::vector<Item> closure(std::vector<Item> s) const;
-
-    std::vector<Item> go_to(std::vector<Item> s, Token token) const;
-
-    std::vector<Token> first_after_next(const Item& item) const
+    template<typename Symbol>
+    std::vector<Item> go_to(const std::vector<Item>& s, Symbol symbol) const
     {
-        auto ss =
-            grammar_.first_from(item.production(), item.placeholder() + 1);
+        std::vector<Item> moved;
+        for (const auto& item : s) {
+            if (item.is_final() || !item.next_symbol_equals(symbol))
+                continue;
 
-        // TODO This is not adding EOF token, should I add it?
-        if (ss.has_empty_token() && item.lookahead().has_value())
-            ss.insert(item.lookahead().value());
-        return std::vector<Token>(ss.tokens().begin(), ss.tokens().end());
+            auto next_item = item.advance_placeholder();
+            if (std::find(moved.begin(), moved.end(), next_item) == moved.end())
+                moved.emplace_back(next_item);
+        }
+        return closure(moved);
     }
 
-    std::vector<std::vector<Item>> cc_;
+    std::vector<Item> closure(std::vector<Item> s) const;
+
+    std::vector<std::optional<Token>> first_after_next(const Item& item) const;
+
+    //void create_tables(std::vector<std::vector<Item>> cc);
+
     const Grammar                  grammar_;
+    std::vector<std::vector<Item>> cc_;
 };

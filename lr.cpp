@@ -1,73 +1,97 @@
 #include "lr.h"
 
-#include <algorithm>
+#include <iterator>
 
-LR::LR(Grammar&& grammar) : grammar_(std::move(grammar))
+LR::LR(Grammar&& grammar)
+    : grammar_(std::move(grammar))
+    , cc_({closure({Item{grammar_.main_production()}})})
 {
-    std::vector<std::vector<Item>> marked;
-    cc_.emplace_back(closure({Item{grammar_.main_production()}}));
-    auto init_size = cc_.size();
-    do {
-        init_size = cc_.size();
-        for (const auto& it : cc_) {
-            if (std::find(marked.begin(), marked.end(), it) != marked.end())
-                continue;
+    for (std::size_t i = 0; i < cc_.size(); ++i) {
+        for (const auto& item : cc_[i]) {
+            auto temp = item.next_is_terminal()
+                            ? go_to(cc_[i], item.next_terminal())
+                            : go_to(cc_[i], item.next_nonterminal());
 
-            marked.emplace_back(it);
-
-            for (const auto& item : it) {
-                if (!item.next_is_terminal())
-                    continue;
-
-                auto temp = go_to(it, item.next_terminal());
-
-                if (std::find(cc_.begin(), cc_.end(), temp) == cc_.end())
-                    cc_.emplace_back(temp);
-            }
+            if (!temp.empty() &&
+                std::find(cc_.begin(), cc_.end(), temp) == cc_.end())
+                cc_.emplace_back(temp);
         }
-    } while (init_size != cc_.size());
+    }
+
+    // TODO: which one should I use
+    // create_tables(cc_);
+    // create_tables(std::move(cc_));
 }
 
 std::vector<LR::Item> LR::closure(std::vector<Item> s) const
 {
-    auto init_size = s.size();
-    do {
-        init_size = s.size();
+    for (std::size_t i = 0; i < s.size(); ++i) {
+        auto item = s[i];
 
-        for (const auto& item : s) {
-            if (item.next_is_terminal())
+        if (item.next_is_terminal())
+            continue;
+
+        for (const auto& production : grammar_) {
+            if (production->lhs() != item.next_nonterminal())
                 continue;
-
-            for (const auto& production : grammar_) {
-                for (auto token : first_after_next(item)) {
-                    if (auto new_item = Item{production.get(), token};
-                        std::find(s.begin(), s.end(), new_item) == s.end()) {
-                        s.emplace_back(new_item);
-                    }
+            for (auto token : first_after_next(item)) {
+                if (auto new_item = Item{production.get(), token};
+                    std::find(s.begin(), s.end(), new_item) == s.end()) {
+                    s.emplace_back(new_item);
                 }
             }
         }
-    } while (init_size != s.size());
-
+    }
     return s;
 }
 
-std::vector<LR::Item> LR::go_to(std::vector<Item> s, Token token) const
+std::vector<std::optional<Token>> LR::first_after_next(const Item& item) const
 {
-    std::vector<Item> moved;
-    for (const auto& item : s) {
-        if (!item.next_is_terminal())
-            continue;
+    auto ss = grammar_.first_from(item.production(), item.placeholder() + 1);
 
-        if (auto next_token = item.next_terminal();
-            next_token == token &&
-            std::find(moved.begin(), moved.end(), item.advance_placeholder()) ==
-                moved.end()) {
-            moved.emplace_back(item.advance_placeholder());
-        }
-    }
-    return moved;
+    if (ss.has_empty_token())
+        ss.insert(item.lookahead());
+    return std::vector<std::optional<Token>>(ss.tokens().begin(),
+                                             ss.tokens().end());
 }
+
+//void LR::create_tables(std::vector<std::vector<Item>> cc)
+//{
+    //    for (std::size_t i = 0; i < cc.size(); ++i) {
+    //        const auto& subset = cc[i];
+    //        for (const auto& item : subset) {
+    //            if (item.is_final()) {
+    //                if (item.is_ending_item()) {
+    //                    // Action[i , eof ] ← ‘‘accept’’
+    //                }
+    //                else {
+    //                    // Action[i ,a] ← ‘‘reduce A→β’’
+    //                }
+    //            }
+    //            else {
+    //                auto goto_set = item.next_is_terminal()
+    //                    ? go_to(subset, item.next_terminal())
+    //                    : go_to(subset, item.next_nonterminal());
+    //                auto it = std::find(cc.begin(), cc.end(), goto_set);
+    //
+    //                // TODO: assert(it != cc.end());
+    //
+    //                auto j = std::distance(cc.begin(), it);
+    //                // Action[i ,c] ← ‘‘shift j’’
+    //            }
+    //        }
+    //        for (auto nonterminal : nonterminals_set) {
+    //            auto goto_set = item.next_is_terminal()
+    //                ? go_to(subset, item.next_terminal())
+    //                : go_to(subset, item.next_nonterminal());
+    //            auto it = std::find(cc.begin(), cc.end(), goto_set);
+    //
+    //            // TODO assert(it != cc.end());
+    //
+    //            auto j = std::distance(cc.begin(), it);
+    //            // Goto[i ,nonterminal] ← j
+    //    }
+//}
 
 void LR::print_items() const
 {
