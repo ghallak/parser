@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <optional>
 #include <vector>
 
@@ -7,6 +8,9 @@
 
 enum class Token;
 enum class Nonterminal;
+
+std::ostream& operator<<(std::ostream& os, Token token);
+std::ostream& operator<<(std::ostream& os, Nonterminal nonterminal);
 
 class LR {
 public:
@@ -83,6 +87,8 @@ public:
             return !operator==(rhs);
         }
 
+        friend std::ostream& operator<<(std::ostream& os, const Item& item);
+
     private:
         const Production*    production_;
         std::size_t          placeholder_;
@@ -90,6 +96,8 @@ public:
     };
 
     LR(Grammar&& grammar);
+
+    void print_items() const;
 
 private:
     std::vector<Item> closure(std::vector<Item> s) const;

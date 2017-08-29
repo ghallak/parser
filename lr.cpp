@@ -68,3 +68,44 @@ std::vector<LR::Item> LR::go_to(std::vector<Item> s, Token token) const
     }
     return moved;
 }
+
+void LR::print_items() const
+{
+    std::cout << "Size: " << cc_.size() << '\n'
+              << "-----\n"
+              << "Items:\n"
+              << "------\n";
+    for (const auto& subset : cc_) {
+        for (const auto& item : subset) {
+            std::cout << item << '\n';
+        }
+    }
+}
+
+std::ostream& operator<<(std::ostream& os, const LR::Item& item)
+{
+    os << '[' << item.production_->lhs() << " ->";
+
+    auto symbols_count = item.production_->rhs_length();
+    for (std::size_t i = 0; i < symbols_count; ++i) {
+        if (item.placeholder_ == i)
+            os << " .";
+
+        if (item.production_->is_terminal_at(i))
+            os << ' ' << item.production_->token_at(i);
+        else
+            os << ' ' << item.production_->nonterminal_at(i);
+    }
+
+    if (item.placeholder_ == symbols_count)
+        os << " . ";
+
+    os << ", ";
+    if (item.lookahead_.has_value())
+        os << item.lookahead_.value();
+    else
+        os << "EOF";
+    os << ']';
+
+    return os;
+}

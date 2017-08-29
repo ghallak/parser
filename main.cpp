@@ -5,6 +5,34 @@ enum class Token { OPEN, CLOSE };
 
 enum class Nonterminal { GOAL, LIST, PAIR };
 
+std::ostream& operator<<(std::ostream& os, Token token)
+{
+    switch (token) {
+    case Token::OPEN:
+        os << '(';
+        break;
+    case Token::CLOSE:
+        os << ')';
+        break;
+    }
+    return os;
+}
+std::ostream& operator<<(std::ostream& os, Nonterminal nonterminal)
+{
+    switch (nonterminal) {
+    case Nonterminal::GOAL:
+        os << "GOAL";
+        break;
+    case Nonterminal::LIST:
+        os << "LIST";
+        break;
+    case Nonterminal::PAIR:
+        os << "PAIR";
+        break;
+    }
+    return os;
+}
+
 Grammar create_grammar()
 {
     Grammar grammar(Nonterminal::GOAL, Nonterminal::LIST);
@@ -23,4 +51,6 @@ Grammar create_grammar()
 int main()
 {
     LR lr{create_grammar()};
+
+    lr.print_items();
 }
