@@ -55,42 +55,42 @@ std::vector<std::optional<Token>> LR::first_after_next(const Item& item) const
                                              ss.tokens().end());
 }
 
-//void LR::create_tables(std::vector<std::vector<Item>> cc)
+// void LR::create_tables(std::vector<std::vector<Item>> cc)
 //{
-    //    for (std::size_t i = 0; i < cc.size(); ++i) {
-    //        const auto& subset = cc[i];
-    //        for (const auto& item : subset) {
-    //            if (item.is_final()) {
-    //                if (item.is_ending_item()) {
-    //                    // Action[i , eof ] ← ‘‘accept’’
-    //                }
-    //                else {
-    //                    // Action[i ,a] ← ‘‘reduce A→β’’
-    //                }
-    //            }
-    //            else {
-    //                auto goto_set = item.next_is_terminal()
-    //                    ? go_to(subset, item.next_terminal())
-    //                    : go_to(subset, item.next_nonterminal());
-    //                auto it = std::find(cc.begin(), cc.end(), goto_set);
-    //
-    //                // TODO: assert(it != cc.end());
-    //
-    //                auto j = std::distance(cc.begin(), it);
-    //                // Action[i ,c] ← ‘‘shift j’’
-    //            }
-    //        }
-    //        for (auto nonterminal : nonterminals_set) {
-    //            auto goto_set = item.next_is_terminal()
-    //                ? go_to(subset, item.next_terminal())
-    //                : go_to(subset, item.next_nonterminal());
-    //            auto it = std::find(cc.begin(), cc.end(), goto_set);
-    //
-    //            // TODO assert(it != cc.end());
-    //
-    //            auto j = std::distance(cc.begin(), it);
-    //            // Goto[i ,nonterminal] ← j
-    //    }
+//    for (std::size_t i = 0; i < cc.size(); ++i) {
+//        const auto& subset = cc[i];
+//        for (const auto& item : subset) {
+//            if (item.is_final()) {
+//                if (item.is_ending_item()) {
+//                    // Action[i , eof ] ← ‘‘accept’’
+//                }
+//                else {
+//                    // Action[i ,a] ← ‘‘reduce A→β’’
+//                }
+//            }
+//            else {
+//                auto goto_set = item.next_is_terminal()
+//                    ? go_to(subset, item.next_terminal())
+//                    : go_to(subset, item.next_nonterminal());
+//                auto it = std::find(cc.begin(), cc.end(), goto_set);
+//
+//                // TODO: assert(it != cc.end());
+//
+//                auto j = std::distance(cc.begin(), it);
+//                // Action[i ,c] ← ‘‘shift j’’
+//            }
+//        }
+//        for (auto nonterminal : nonterminals_set) {
+//            auto goto_set = item.next_is_terminal()
+//                ? go_to(subset, item.next_terminal())
+//                : go_to(subset, item.next_nonterminal());
+//            auto it = std::find(cc.begin(), cc.end(), goto_set);
+//
+//            // TODO assert(it != cc.end());
+//
+//            auto j = std::distance(cc.begin(), it);
+//            // Goto[i ,nonterminal] ← j
+//    }
 //}
 
 void LR::print_items() const

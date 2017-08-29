@@ -140,7 +140,7 @@ private:
 
     std::vector<std::optional<Token>> first_after_next(const Item& item) const;
 
-    //void create_tables(std::vector<std::vector<Item>> cc);
+    // void create_tables(std::vector<std::vector<Item>> cc);
 
     const Grammar                  grammar_;
     std::vector<std::vector<Item>> cc_;
