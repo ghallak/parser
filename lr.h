@@ -66,13 +66,6 @@ public:
             return placeholder_ == production_->rhs_length();
         }
 
-        bool next_is_terminal() const
-        {
-            return placeholder_ < production_->rhs_length()
-                       ? production_->is_terminal_at(placeholder_)
-                       : true;
-        }
-
         Symbol next_symbol() const
         {
             return placeholder_ < production_->rhs_length()
@@ -88,6 +81,11 @@ public:
         Nonterminal next_nonterminal() const
         {
             return std::get<Nonterminal>(next_symbol());
+        }
+
+        bool next_is_terminal() const
+        {
+            return std::holds_alternative<Terminal>(next_symbol());
         }
 
         bool operator==(const Item& rhs) const
@@ -114,6 +112,8 @@ public:
 
     void print_items() const;
 
+    void print_tables() const;
+
 private:
     std::vector<Item> go_to(const std::vector<Item>& s, Symbol symbol) const;
 
@@ -121,8 +121,43 @@ private:
 
     std::vector<Terminal> first_after_next(const Item& item) const;
 
-    // void create_tables(std::vector<std::vector<Item>> cc);
+    void build_tables(std::vector<std::vector<Item>>&& cc);
 
-    const Grammar                  grammar_;
-    std::vector<std::vector<Item>> cc_;
+    bool is_ending_item(const Item& item) const
+    {
+        return item.is_final() &&
+               item.production() == grammar_.main_production();
+    }
+
+    struct PairHash {
+        template<typename T, typename U>
+        std::size_t operator()(const std::pair<T, U>& p) const
+        {
+            auto h1 = std::hash<T>{}(p.first);
+            auto h2 = std::hash<U>{}(p.second);
+
+            return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+        }
+    };
+
+    struct Shift {
+        Shift(std::size_t i) : i(i) {}
+        std::size_t i;
+    };
+
+    struct Reduce {
+        Reduce(const Production* p) : p(p) {}
+        const Production* p;
+    };
+
+    struct Accept {
+    };
+
+    using Action            = std::variant<Shift, Reduce, Accept>;
+    using index_nonterminal = std::pair<std::size_t, Nonterminal>;
+    using index_terminal    = std::pair<std::size_t, Terminal>;
+
+    const Grammar                                                grammar_;
+    std::unordered_map<index_terminal, Action, PairHash>         actions_;
+    std::unordered_map<index_nonterminal, std::size_t, PairHash> goto_;
 };

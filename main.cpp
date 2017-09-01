@@ -52,5 +52,5 @@ int main()
 {
     LR lr{create_grammar()};
 
-    lr.print_items();
+    lr.print_tables();
 }
