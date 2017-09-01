@@ -8,9 +8,7 @@ LR::LR(Grammar&& grammar)
 {
     for (std::size_t i = 0; i < cc_.size(); ++i) {
         for (const auto& item : cc_[i]) {
-            auto temp = item.next_is_terminal()
-                            ? go_to(cc_[i], item.next_terminal())
-                            : go_to(cc_[i], item.next_nonterminal());
+            auto temp = go_to(cc_[i], item.next_symbol());
 
             if (!temp.empty() &&
                 std::find(cc_.begin(), cc_.end(), temp) == cc_.end())
@@ -21,6 +19,20 @@ LR::LR(Grammar&& grammar)
     // TODO: which one should I use
     // create_tables(cc_);
     // create_tables(std::move(cc_));
+}
+
+std::vector<LR::Item> LR::go_to(const std::vector<Item>& s, Symbol symbol) const
+{
+    std::vector<Item> moved;
+    for (const auto& item : s) {
+        if (item.is_final() || item.next_symbol() != symbol)
+            continue;
+
+        auto next_item = item.advance_placeholder();
+        if (std::find(moved.begin(), moved.end(), next_item) == moved.end())
+            moved.emplace_back(next_item);
+    }
+    return closure(moved);
 }
 
 std::vector<LR::Item> LR::closure(std::vector<Item> s) const
@@ -45,14 +57,13 @@ std::vector<LR::Item> LR::closure(std::vector<Item> s) const
     return s;
 }
 
-std::vector<std::optional<Token>> LR::first_after_next(const Item& item) const
+std::vector<LR::Terminal> LR::first_after_next(const Item& item) const
 {
     auto ss = grammar_.first_from(item.production(), item.placeholder() + 1);
 
-    if (ss.has_empty_token())
+    if (ss.find(EmptyToken{}) != ss.end())
         ss.insert(item.lookahead());
-    return std::vector<std::optional<Token>>(ss.tokens().begin(),
-                                             ss.tokens().end());
+    return std::vector<Terminal>(ss.begin(), ss.end());
 }
 
 // void LR::create_tables(std::vector<std::vector<Item>> cc)
@@ -116,7 +127,7 @@ std::ostream& operator<<(std::ostream& os, const LR::Item& item)
             os << " .";
 
         if (item.production_->is_terminal_at(i))
-            os << ' ' << item.production_->token_at(i);
+            os << ' ' << std::get<Token>(item.production_->terminal_at(i));
         else
             os << ' ' << item.production_->nonterminal_at(i);
     }
@@ -125,8 +136,8 @@ std::ostream& operator<<(std::ostream& os, const LR::Item& item)
         os << " . ";
 
     os << ", ";
-    if (item.lookahead_.has_value())
-        os << item.lookahead_.value();
+    if (std::holds_alternative<Token>(item.lookahead_))
+        os << std::get<Token>(item.lookahead_);
     else
         os << "EOF";
     os << ']';
