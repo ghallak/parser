@@ -52,3 +52,14 @@ Grammar::FirstSet Grammar::first_from(const Production* production,
 
     return first_set;
 }
+
+std::vector<Nonterminal> Grammar::nonterminals() const
+{
+    std::unordered_set<Nonterminal> result;
+    for (const auto& production : productions_) {
+        if (main_production()->lhs() == production->lhs())
+            continue;
+        result.emplace(production->lhs());
+    }
+    return std::vector<Nonterminal>(result.begin(), result.end());
+}

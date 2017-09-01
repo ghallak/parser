@@ -132,6 +132,8 @@ public:
 
     FirstSet first_from(const Production* p, std::size_t from) const;
 
+    std::vector<Nonterminal> nonterminals() const;
+
     const_iterator begin() const noexcept
     {
         return productions_.cbegin();
