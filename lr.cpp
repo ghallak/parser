@@ -129,11 +129,13 @@ void LR::print_tables() const
             std::cout << "acc";
         }
         else if (std::holds_alternative<Shift>(action)) {
-            std::cout << "shift " << std::get<Shift>(action).i;
+            std::cout << "shift " << std::get<Shift>(action).state;
         }
         else {
-            std::cout << "reduce " << std::get<Reduce>(action).p->lhs() << '('
-                      << std::get<Reduce>(action).p->rhs_length() << ')';
+            std::cout << "reduce " << std::get<Reduce>(action).production->lhs()
+                      << '('
+                      << std::get<Reduce>(action).production->rhs_length()
+                      << ')';
         }
 
         std::cout << '\n';

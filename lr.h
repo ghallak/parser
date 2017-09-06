@@ -141,13 +141,13 @@ private:
     };
 
     struct Shift {
-        Shift(std::size_t i) : i(i) {}
-        std::size_t i;
+        Shift(std::size_t s) : state(s) {}
+        std::size_t state;
     };
 
     struct Reduce {
-        Reduce(const Production* p) : p(p) {}
-        const Production* p;
+        Reduce(const Production* p) : production(p) {}
+        const Production* production;
     };
 
     struct Accept {
