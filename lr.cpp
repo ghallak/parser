@@ -1,5 +1,6 @@
 #include "lr.h"
 
+#include <cassert>
 #include <iterator>
 
 LR::LR(Grammar&& grammar) : grammar_(std::move(grammar))
@@ -102,6 +103,56 @@ void LR::build_tables(std::vector<std::vector<Item>>&& cc)
             goto_[std::pair{i, nonterminal}] = j;
         }
     }
+}
+
+bool LR::valid_parse(std::vector<Token> tokens) const
+{
+    std::reverse(tokens.begin(), tokens.end());
+    auto next_token = [&tokens] {
+        auto token = tokens.back();
+        tokens.pop_back();
+        return token;
+    };
+
+    std::vector<int>    states{0};
+    std::vector<Symbol> symbols;
+
+    Terminal token = next_token();
+
+    while (actions_.find(std::pair{states.back(), token}) != actions_.end()) {
+        auto state  = states.back();
+        auto action = actions_.at(std::pair{state, token});
+
+        if (std::holds_alternative<Reduce>(action)) {
+            auto prod = std::get<Reduce>(action).production;
+            auto lhs  = prod->lhs();
+
+            assert(prod->rhs_length() < states.size());
+
+            for (size_t i = 0; i < prod->rhs_length(); ++i) {
+                states.pop_back();
+                symbols.pop_back();
+            }
+            state = states.back();
+            symbols.push_back(lhs);
+
+            assert(goto_.find(std::pair{state, lhs}) != goto_.end());
+
+            states.push_back(goto_.at(std::pair{state, lhs}));
+        }
+        else if (std::holds_alternative<Shift>(action)) {
+            symbols.push_back(token);
+            states.push_back(std::get<Shift>(action).state);
+            if (!tokens.empty())
+                token = next_token();
+            else
+                token = EofToken{};
+        }
+        else {
+            return true;
+        }
+    }
+    return false;
 }
 
 void LR::print_tables() const

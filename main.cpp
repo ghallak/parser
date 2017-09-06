@@ -53,4 +53,8 @@ int main()
     LR lr{create_grammar()};
 
     lr.print_tables();
+
+    std::cout << lr.valid_parse(std::vector<Token>{Token::OPEN, Token::OPEN,
+                                                   Token::CLOSE, Token::CLOSE})
+              << '\n';
 }

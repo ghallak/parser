@@ -110,7 +110,7 @@ public:
 
     LR(Grammar&& grammar);
 
-    void print_items() const;
+    bool valid_parse(std::vector<Token> words) const;
 
     void print_tables() const;
 
